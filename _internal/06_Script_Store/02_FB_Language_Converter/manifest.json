@@ -1,0 +1,16 @@
+{
+  "id": "fb_language_converter",
+  "name": "🌐 FB 1-Click Language Converter",
+  "version": "2.3.0",
+  "author": "srkBrowser Automation Lab",
+  "category": "Facebook Tools",
+  "description": "Instantly switch Facebook account language to English (en_US) or other international locales via fast GraphQL mutation directly from srkBrowser profile cards.",
+  "icon": "🌐",
+  "entry_point": "fb_lang_convert_modal.py",
+  "class_name": "FbLanguageConverterModal",
+  "action_type": "profile_card_modal",
+  "permissions": [
+    "browser_context",
+    "facebook_session"
+  ]
+}

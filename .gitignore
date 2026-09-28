@@ -1,0 +1,48 @@
+# ============================================
+# SRK Browser & Automation Bots - .gitignore
+# ============================================
+
+# Large browser binaries & user data
+chromium/
+data/
+*.exe
+*.dll
+*.pyd
+*.zip
+*.tar.gz
+
+# Python cache & compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore duplicate bots directory inside _internal
+_internal/03_Automation_Bots/
+
+# Ignore bundled third-party libraries in _internal
+_internal/PySide6/
+_internal/playwright/
+_internal/tcl/
+_internal/tk/
+_internal/PIL/
+_internal/cv2/
+_internal/numpy/
+_internal/certifi/
+_internal/charset_normalizer/
+_internal/urllib3/
+_internal/requests/
+_internal/idna/
+_internal/cryptography/
+_internal/cryptography-*.dist-info/
+_internal/greenlet/
+_internal/psutil/
+_internal/setuptools/
+_internal/shiboken6/
+_internal/base_library.zip
+_internal/*.dll
+_internal/*.pyd
+
+# Logs & temp files
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "srkBrowser Auto Cookie & Session Injector",
+  "version": "2.0.0",
+  "description": "Auto-injects active session cookies into Chrome on profile launch.",
+  "permissions": [
+    "cookies",
+    "storage",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["cookies_payload.json"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
