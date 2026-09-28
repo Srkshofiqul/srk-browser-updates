@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont, QIcon
 
 
-CHROMIUM_DOWNLOAD_URL = "https://srbrowser.com/static/downloads/chromium.zip"
+CHROMIUM_DOWNLOAD_URL = "https://github.com/Srkshofiqul/srk-browser-updates/releases/download/v2.1.0/chromium.zip"
+CHROMIUM_FALLBACK_URL = "https://srbrowser.com/static/downloads/chromium.zip"
 
 
 class ChromiumDownloadWorker(QThread):
@@ -28,10 +29,11 @@ class ChromiumDownloadWorker(QThread):
     status_changed = Signal(str)
     finished_signal = Signal(bool, str)
 
-    def __init__(self, target_dir: Path, download_url: str = CHROMIUM_DOWNLOAD_URL):
+    def __init__(self, target_dir: Path, download_url: str = CHROMIUM_DOWNLOAD_URL, fallback_url: str = CHROMIUM_FALLBACK_URL):
         super().__init__()
         self.target_dir = target_dir
         self.download_url = download_url
+        self.fallback_url = fallback_url
         self.is_cancelled = False
 
     def cancel(self):
@@ -41,49 +43,74 @@ class ChromiumDownloadWorker(QThread):
         temp_zip = self.target_dir / "chromium_temp.zip"
         try:
             self.target_dir.mkdir(parents=True, exist_ok=True)
-            self.status_changed.emit("Connecting to srkBrowser Cloud CDN...")
 
-            # 1. Start HTTP Request
-            req = urllib.request.Request(
-                self.download_url,
-                headers={"User-Agent": "srkBrowser-Client/2.0"}
-            )
-            with urllib.request.urlopen(req, timeout=30) as response:
-                total_size = int(response.info().get('Content-Length', 0))
-                total_mb = total_size / (1024 * 1024) if total_size > 0 else 180.0
+            urls = [self.download_url]
+            if self.fallback_url and self.fallback_url not in urls:
+                urls.append(self.fallback_url)
 
-                downloaded = 0
-                block_size = 1024 * 64  # 64 KB chunks
-                start_time = time.time()
-                last_update = 0
+            download_success = False
+            last_err = None
 
-                with open(temp_zip, 'wb') as out_file:
-                    while True:
-                        if self.is_cancelled:
-                            out_file.close()
-                            if temp_zip.exists():
-                                temp_zip.unlink()
-                            self.finished_signal.emit(False, "Download cancelled by user.")
-                            return
+            for current_url in urls:
+                if self.is_cancelled:
+                    return
+                try:
+                    self.status_changed.emit("Connecting to srkBrowser Cloud CDN...")
 
-                        buffer = response.read(block_size)
-                        if not buffer:
-                            break
+                    # 1. Start HTTP Request
+                    req = urllib.request.Request(
+                        current_url,
+                        headers={"User-Agent": "srkBrowser-Client/2.0"}
+                    )
+                    with urllib.request.urlopen(req, timeout=30) as response:
+                        total_size = int(response.info().get('Content-Length', 0))
+                        total_mb = total_size / (1024 * 1024) if total_size > 0 else 180.0
 
-                        downloaded += len(buffer)
-                        out_file.write(buffer)
+                        downloaded = 0
+                        block_size = 1024 * 64  # 64 KB chunks
+                        start_time = time.time()
+                        last_update = 0
 
-                        now = time.time()
-                        if now - last_update > 0.1:
-                            last_update = now
-                            downloaded_mb = downloaded / (1024 * 1024)
-                            percent = int((downloaded / total_size) * 100) if total_size > 0 else 50
-                            elapsed = max(0.1, now - start_time)
-                            speed_mbps = (downloaded_mb * 8) / elapsed
-                            self.progress_changed.emit(percent, downloaded_mb, total_mb, speed_mbps)
+                        with open(temp_zip, 'wb') as out_file:
+                            while True:
+                                if self.is_cancelled:
+                                    out_file.close()
+                                    if temp_zip.exists():
+                                        temp_zip.unlink()
+                                    self.finished_signal.emit(False, "Download cancelled by user.")
+                                    return
 
-            if self.is_cancelled:
-                return
+                                buffer = response.read(block_size)
+                                if not buffer:
+                                    break
+
+                                downloaded += len(buffer)
+                                out_file.write(buffer)
+
+                                now = time.time()
+                                if now - last_update > 0.1:
+                                    last_update = now
+                                    downloaded_mb = downloaded / (1024 * 1024)
+                                    percent = int((downloaded / total_size) * 100) if total_size > 0 else 50
+                                    elapsed = max(0.1, now - start_time)
+                                    speed_mbps = (downloaded_mb * 8) / elapsed
+                                    self.progress_changed.emit(percent, downloaded_mb, total_mb, speed_mbps)
+
+                    download_success = True
+                    break
+                except Exception as ex:
+                    last_err = ex
+                    if self.is_cancelled:
+                        return
+                    if temp_zip.exists():
+                        try:
+                            temp_zip.unlink()
+                        except Exception:
+                            pass
+                    continue
+
+            if not download_success:
+                raise last_err or Exception("All download endpoints failed.")
 
             # 2. Extract Archive
             self.status_changed.emit("Extracting & Initializing Portable Chromium Engine...")
